@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "编排模式",
+    "description": "在一个会话里用两个模型分别做规划与执行。你在模型选择器里选中的模型负责规划，插件配置的执行模型负责实现。规划阶段是只读的，两个工具在步骤边界交接控制权（orchestrator_exit_plan_mode / orchestrator_enter_plan_mode）；执行模型每走满 N 步会被强制交回复核一次；执行期间的用户消息会被转给规划模型，而不是由执行模型直接处理。用 /orchestrate 按会话开启，/orchestrate status 查看路由、阶段和复核计数，/orchestrate off 关闭并恢复规划模型选择。重启或插件重载后默认回到关闭（activation: always 除外）。未配置执行模型时两个阶段共用当前模型：协议与工具门控仍然生效，但不会发生模型切换。默认提示词是按参考行为改写的英文版，可用 plannerPrompt/executorPrompt 在本地覆盖。"
+  }
+}

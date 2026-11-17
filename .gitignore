@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# build / pack output
+*.tgz
+dist/
+build/
+coverage/
+
+# logs and temp
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.tmp/
+tmp/
+
+# editor and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# local env / secrets
+.env
+.env.*
+!.env.example

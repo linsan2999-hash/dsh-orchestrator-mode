@@ -1,0 +1,38 @@
+{
+  "name": "dsh-orchestrator-mode",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Orchestrator mode for DSH: the session-selected model plans behind a workspace-changing tool deny list, a configured executor model implements, and two hand-off tools move control between phases inside one conversation.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "icon": "icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "src",
+    "test",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-plugin-manager"],
+      "external": []
+    }
+  }
+}

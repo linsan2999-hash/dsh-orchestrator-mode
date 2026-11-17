@@ -1,0 +1,44 @@
+# Orchestrator mode bundle patch.
+#
+# One row: the plugin is the whole feature. The row `name` must match the
+# package name. The row id is what a profile patch overrides.
+#
+# The planner model is whatever the session model picker currently selects; only
+# the executor route is configured here. Leave the route empty to run the two
+# phases on one model (the protocol and the gate still work).
+#
+# Profile override example (in the profile's cordis.patch.yml):
+#
+#   - id: orchestrator-mode
+#     name: dsh-orchestrator-mode
+#     config:
+#       executorProvider: magpie
+#       executorModel: workbuddy-ai/hy3
+#       executorEffort: ''
+#       reviewEvery: 10
+#
+# Overrides replace this row's whole config; missing keys fall back to the
+# defaults resolved by src/config.js.
+
+- insert:
+    - id: orchestrator-mode
+      name: 'dsh-orchestrator-mode'
+      config:
+        enabled: true
+        activation: command
+        executorProvider: ''
+        executorModel: ''
+        executorEffort: ''
+        reviewEvery: 10
+        # Keep false for Agent Teams: team members are subagents and should run
+        # as ordinary agents, not enter the plan/execute phases.
+        includeSubagents: false
+        maxReportChars: 12000
+        # The planning gate is an exact deny list, matching the reference
+        # binary: only these workspace-changing tools are refused, everything
+        # else passes and the "observe only" rule is carried by the phase
+        # prompt. Empty means: use the built-in list in src/config.js
+        # (write/edit/multi_edit/apply_patch/run_code/memory/office_*).
+        # Add names to tighten the gate (for example `pwsh`, `subagent`,
+        # `team_task_create`); there is no allow-list any more.
+        planDenyTools: []

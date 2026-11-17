@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Orchestrator mode",
+    "description": "Runs planning and execution on two models in one conversation. The model you select in the session model picker plans; a configured executor route implements the plan. The planning phase is read-only, two tools hand control back and forth (orchestrator_exit_plan_mode / orchestrator_enter_plan_mode), a periodic review forces the executor to report back every N execution-model steps, and a user message during execution is routed to the planner instead of being acted on directly. Enable per session with /orchestrate; /orchestrate status reports the routes, phase, and review counter; /orchestrate off restores the planner selection. The plugin is off after a restart or plugin reload unless activation is set to always. Without a configured executor route both phases run on the selected model: the protocol and tool gate still work, but no model switch happens. Prompts are an English adaptation of the reference behavior; plannerPrompt/executorPrompt can override them locally."
+  }
+}
