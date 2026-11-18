@@ -1,0 +1,52 @@
+{
+  "format": 1,
+  "title": {
+    "en": "linsan2999-hash plugins",
+    "zh": "linsan2999-hash 插件集"
+  },
+  "description": {
+    "en": "Community DSH plugins by linsan2999-hash.",
+    "zh": "linsan2999-hash 的社区 DSH 插件。"
+  },
+  "metadata": {},
+  "plugins": [
+    {
+      "name": "dsh-orchestrator-mode",
+      "title": {
+        "en": "Orchestrator mode",
+        "zh": "编排模式"
+      },
+      "description": {
+        "en": "Two-model plan-and-execute protocol in one DSH session: the selected model plans read-only, a configured executor model implements, and hand-off tools move control between phases.",
+        "zh": "在 DSH 同一会话内实现双模型计划-执行协议：选中模型只读规划，配置的执行模型实施，交接工具在阶段间转移控制权。"
+      },
+      "icon": "https://raw.githubusercontent.com/linsan2999-hash/dsh-orchestrator-mode/main/icon.svg",
+      "author": "linsan2999-hash",
+      "homepage": "https://github.com/linsan2999-hash/dsh-orchestrator-mode",
+      "repository": {
+        "url": "https://github.com/linsan2999-hash/dsh-orchestrator-mode"
+      },
+      "metadata": {
+        "keywords": [
+          "orchestrator",
+          "plan-execute",
+          "subagent",
+          "多模型",
+          "编排"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.6.0",
+          "publishTimestamp": 1794966056,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/linsan2999-hash/dsh-orchestrator-mode",
+            "commit": "4d3def05f76942768745d9284456113f31bb25d3"
+          },
+          "engines": {}
+        }
+      ]
+    }
+  ]
+}
