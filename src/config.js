@@ -23,8 +23,12 @@
  * gate only stops the model from reaching for an editing tool.
  *
  * This list enumerates the first-party tools whose purpose is to write the
- * workspace, so a planner cannot sidestep the gate through a file-editing or
- * code-execution tool. Command runners (`pwsh`, `terminal_*`) stay out on
+ * workspace, so a planner cannot sidestep the gate through a file-editing
+ * tool. `run_code` is deliberately absent: under the PTC executor it is the
+ * only directly callable tool (every capability is reached from inside a
+ * program), so refusing it would leave the planning phase with no callable
+ * tool at all. Each nested program call passes the gate under its own name.
+ * Command runners (`pwsh`, `terminal_*`) stay out on
  * purpose: the reference gate does not inspect command arguments and neither
  * does this one. Delegation (`subagent`, `workflow`) also stays out, matching
  * the reference, where swarm tools pass the gate and the planner prompt is
@@ -35,7 +39,6 @@ export const DEFAULT_PLAN_DENY = Object.freeze([
   'edit',
   'multi_edit',
   'apply_patch',
-  'run_code',
   'memory',
   'office_render',
   'office_convert',
@@ -229,6 +232,12 @@ export function resolveConfig(raw) {
   // phase, and the review gate is what holds them back.
   deny.delete(exitToolName)
   deny.delete(enterToolName)
+  // run_code is the PTC transport, not a capability: a program reaches every
+  // tool through it, and each nested call is gated under its own name. Denying
+  // it would leave a PTC session with no callable tool at all.
+  if (deny.delete('run_code')) {
+    warn('planDenyTools: run_code is the PTC transport and stays callable; deny the tools a program may call instead')
+  }
   const legacyAllow = input[LEGACY_PLAN_ALLOW_KEY]
   const legacyAllowSet = Array.isArray(legacyAllow) ? legacyAllow.length > 0 : text(legacyAllow) !== ''
   if (legacyAllowSet) {

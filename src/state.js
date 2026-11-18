@@ -8,6 +8,13 @@
 /** @typedef {{ provider: string, model: string, reasoningEffort?: string }} ModelSelection */
 
 /**
+ * The PTC transport name. Under the PTC executor this is the only tool the
+ * model may call directly; every capability is reached from inside a program
+ * and each nested call is gated under its own name.
+ */
+const RUN_CODE = 'run_code'
+
+/**
  * @typedef {Object} OrchestratorState
  * @property {unknown} agent
  * @property {string} sessionId
@@ -264,6 +271,13 @@ export function applyModelSelection(state, selection, executorRoute) {
 export function gateDecision(state, toolName, config, suspended) {
   if (!state.active || suspended) return null
   const { exitToolName, enterToolName } = config
+
+  // 0) The PTC transport is not a capability. Under the PTC executor the model
+  // may only call `run_code` directly; every other tool is reached from inside
+  // the program and passes this gate under its own name. Refusing the transport
+  // would block the whole phase, and while a review is pending it would make
+  // the hand-back unreachable.
+  if (toolName === RUN_CODE) return null
 
   // 1) Plan phase: an exact deny list of workspace-changing tools. Everything
   // else passes, matching the reference gate ("%s changes the workspace").

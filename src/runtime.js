@@ -725,7 +725,7 @@ export class OrchestratorRuntime {
       lines.push('执行模型未配置：两阶段共用当前模型；配置 executorProvider/executorModel 后才会切换。')
     }
     lines.push('规划模型就是你在模型选择器里选中的模型。规划阶段结束时插件会切到执行模型，交回时切回你的选择。')
-    lines.push('规划阶段用黑名单 gate：编辑类工具（write/edit/apply_patch/run_code 等）会被拒绝，其余工具放行；"只观察"由提示词约束，gate 不检查 pwsh 命令参数。')
+    lines.push('规划阶段用黑名单 gate：编辑类工具（write/edit/apply_patch 等）会被拒绝，其余工具放行；run_code 是 PTC 传输层，始终放行，程序内的嵌套调用按真实工具名判定；"只观察"由提示词约束，gate 不检查 pwsh 命令参数。')
     if (agent.inbox?.nextStep?.length > 0 || agent.inbox?.nextTurn?.length > 0) {
       lines.push('当前 Turn 已在运行：阶段提示与门控从下一步生效。')
     }
@@ -756,7 +756,7 @@ export class OrchestratorRuntime {
       lines.push(`待处理：${pending.length > 0 ? pending.join(' / ') : '无'}`)
     }
     lines.push(`工具：${this.config.exitToolName} / ${this.config.enterToolName}`)
-    lines.push(`规划 gate：黑名单 ${this.config.planDenyTools.length} 项（${this.config.planDenyTools.join('、')}）；其余放行，不检查命令参数`)
+    lines.push(`规划 gate：黑名单 ${this.config.planDenyTools.length} 项（${this.config.planDenyTools.join('、')}）；其余放行，不检查命令参数；run_code（PTC 传输层）始终放行`)
     if (sameAsExecutor) {
       lines.push(state.active
         ? '提示：当前模型就是执行模型，交接不会切换模型；请在模型选择器里换一个规划模型。'

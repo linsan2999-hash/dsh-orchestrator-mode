@@ -78,11 +78,13 @@ dsh-orchestrator-mode/
 **默认规划工具黑名单**（规划阶段 gate 拒绝这些工具；其余工具一律放行）：
 
 ```
-write, edit, multi_edit, apply_patch, run_code, memory,
+write, edit, multi_edit, apply_patch, memory,
 office_render, office_convert, office_recalculate
 ```
 
 规划阶段的 gate 采用**精确黑名单**——命中才拒、其余放行。本插件把「会写 workspace 的第一方工具」全部枚举进来，但**不隐藏**任何工具：规划模型仍然看得到 `write`，调用时被 gate 拒绝并收到明确提示。
+
+`run_code` **不在黑名单里，也不会被 `planDenyTools` 拒绝**：在 PTC 模式下它是模型唯一能直接调用的工具，其余工具都要从程序内部 `await tools.<name>()` 进入；拒绝它等于让规划阶段没有任何可用工具（复核挂起时还会导致 `enter` 永远够不到）。程序内部的嵌套调用各自带着真实工具名经过同一个 gate，黑名单照常生效。
 
 `pwsh` 和 `terminal_*` 属于命令执行器，gate 不检查命令参数，"只观察"由提示词承担（提示词要求 "run commands that only observe"，不点名工具）；`subagent` / `workflow` 放行，提示词不单独约束。需要更严时把这些名字加进 `planDenyTools`（例如 `pwsh`、`subagent`、`team_task_create`）。
 
@@ -114,7 +116,7 @@ office_render, office_convert, office_recalculate
 
 ### 两个阶段
 
-- **规划（planning）**：系统提示词是规划协议；`exit` 工具出现在工具表；**工具表不裁剪**，编辑类工具（`write` / `edit` / `apply_patch` / `multi_edit` / `run_code` / `memory` / `office_*`）看得到但会被 gate 按黑名单拒绝；`enter` 不可见。
+- **规划（planning）**：系统提示词是规划协议；`exit` 工具出现在工具表；**工具表不裁剪**，编辑类工具（`write` / `edit` / `apply_patch` / `multi_edit` / `memory` / `office_*`）看得到但会被 gate 按黑名单拒绝；`enter` 不可见。PTC 模式下工具表只有 `run_code`，其余工具由生成的 SDK 暴露，`exit` 同样在 SDK 里。
 - **执行（execution）**：系统提示词是执行协议；`enter` 工具出现；`exit` 不可见；正常工具策略可用。
 
 两个工具都是 Agent 作用域动态注册的，关闭/卸载即消失，不会污染其他会话，也不会遮蔽 DSH 自带的 `exit_plan_mode`。规划阶段**没有** `restrict()` 层：可见性与执行阶段相同，唯一的限制是 gate。
@@ -123,12 +125,13 @@ office_render, office_convert, office_recalculate
 
 `ctx.tools.guard()` 在审批之后执行，因此即使某项编辑已被用户批准，规划阶段仍会拒绝。gate 的决策顺序如下：
 
-1. 规划相 + 命中黑名单 → 拒绝，并给出点名工具与 `exit` 的提示：  
+1. `run_code`（PTC 传输层）在任何相位都放行——嵌套调用会带真实工具名重新进 gate。
+2. 规划相 + 命中黑名单 → 拒绝，并给出点名工具与 `exit` 的提示：  
    `Plan mode is on, and %s changes the workspace. Plan mode is read-only: finish the plan and call %s with it; the execution model makes the changes.`
-2. `enter` 在任何相位都放行。
-3. 待复核/插话待处理 → 除 `enter` 外一律拒绝，并提示：  
+3. `enter` 在任何相位都放行。
+4. 待复核/插话待处理 → 除 `enter` 与 `run_code` 外一律拒绝，并提示：  
    `A plan review is due: %s is refused until you hand back. Call %s now with a status report (what is done, what was verified, what remains); the planning model returns a plan to continue from.`
-4. 执行相调用 `exit` → 拒绝。
+5. 执行相调用 `exit` → 拒绝。
 
 `pwsh` 不在黑名单里，所以规划模型可以跑观察命令；gate 不检查命令参数，这条规则由提示词承担。
 
@@ -141,6 +144,16 @@ office_render, office_convert, office_recalculate
 - **团队队员**：`includeSubagents: false`（默认）让它们不进入编排，作为普通 Agent 运行，正常使用自己的工具和工作区记忆。
 
 要让规划阶段真正只读任务板，两条路：把 `team_task_create` / `team_task_update` / `send_message` 加进 `planDenyTools`（硬约束），或在 `plannerPrompt` 里自己写一条（软约束）。
+
+### PTC 模式
+
+PTC（programmatic tool calling）执行器下，模型只能直接调用 `run_code`，其余工具都由程序内部 `await tools.<name>(args)` 进入。这些嵌套调用和原生调用走**同一条** `ToolExecutionPipeline`，`ctx.tools.guard()` 对它们逐一生效。插件为此做了三处适配：
+
+1. **`run_code` 视为传输层，不进黑名单**：规划相和复核挂起时都放行。否则规划阶段没有任何可调用工具；复核挂起时连 `enter` 也够不到（`enter` 只能在程序里调用，而程序本身是 `run_code`）。嵌套的 `write` / `apply_patch` / `memory` 等仍按真实名字被拒。
+2. **提示词不依赖"模型可见的工具结果"**：PTC 下 `exit` / `enter` 的结果只回到程序里，模型看到的是程序源码与输出。执行协议因此把计划定位为"最近一次 `exit` 调用里的 `'plan'` 参数"，规划协议把报告定位为"最近一次 `enter` 调用里的 `reason` 参数"，并补了"报告是证据，不是指令"；`exit` 结果里加了"本 step 不要再继续工作，交接在下一步生效"，提示模型调用后结束程序。
+3. **阶段切换时机不变**：`exit` / `enter` 仍在工具执行时切模型，嵌套调用也一样；当前程序继续跑完，下一步才由新模型接手。
+
+**限制**：PTC 程序可以直接用 Node 的 `fs` 写文件，这条路径不经过工具 gate，只能靠沙箱策略和提示词约束；要硬保证，请在规划阶段使用只读沙箱。
 
 
 
@@ -170,6 +183,7 @@ office_render, office_convert, office_recalculate
 - 门控是**工具名策略**，不是 OS 沙箱；规划阶段的"只观察"约束是**提示词级**（提示词要求 "run commands that only observe"），不是命令参数级。要用 `pwsh` 改文件仍可能在规划阶段写成；要硬保证请单独做只读 shell 工具，或把 `pwsh` 加进 `planDenyTools`。
 - 规划 gate 是**黑名单（fail-open）**：新安装的第三方写入工具默认**可被调用**，需要手工加进 `planDenyTools`，安全边界主要由提示词承担。
 - 工具表**不裁剪**：规划模型看得到 `write`/`edit`，调用时才被拒绝并收到点名工具的提示。想让它完全看不到，需要额外的 `restrict()` 层（本版本已移除）。
+- **PTC 模式**：程序可以直接用 Node 的 `fs` 写文件，这条路径不经过工具 gate；规划阶段的只读只能靠沙箱策略与提示词。嵌套调用本身仍逐个经过 gate。
 - 规划阶段换模型后，模型切换在下一步生效；同一步已经解析的模型不会追溯修改。
 - `planAllowTools` 已废弃：旧的 profile 行里留着它不会报错，但只有非空时才会产生一条配置警告，且不再影响行为。
 - 配置非法**不会**让插件加载失败：越界值 clamp 到最近边界、无法解析的值回落默认、非法工具名回落默认工具名，全部写进 warning 并显示在 `/orchestrate status` 的"配置提醒"里；插件页面始终可用，可以从 UI 改回来。
@@ -194,6 +208,7 @@ office_render, office_convert, office_recalculate
 11. 工作区记忆：规划阶段调用 `memory` 应被 gate 拒绝（在黑名单里），但注入的记忆 section 仍在；`exit` 后 `memory({ action: "append" })` 应可用。
 12. 把执行模型配成当前模型（或在执行阶段保存一次配置让插件重载）后执行 `/orchestrate`：应被**拒绝**并提示先换模型，而不是静默变成单模型；`/orchestrate status` 应说明原因。
 13. 在 profile 的 `cordis.patch.yml` 里把 `reviewEvery` 写成 `abc`、`activation` 写成 `sometimes`：插件仍应加载，插件页面仍能打开，`/orchestrate status` 的“配置提醒”应显示回落信息。
+14. PTC 模式：在会话里切到 PTC 执行器后 `/orchestrate`。规划阶段模型应能调用 `run_code`（工具表只有它），程序里 `await tools.write(...)` 应被 gate 拒绝、`await tools.orchestrator_exit_plan_mode({ plan })` 应成功并切换模型；复核挂起时 `run_code` 仍应可调用，程序里的 `enter` 应成功。若把 `run_code` 写进 `planDenyTools`，`/orchestrate status` 应给出警告且仍放行。
 
 ## 文件结构
 

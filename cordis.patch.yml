@@ -38,7 +38,9 @@
         # binary: only these workspace-changing tools are refused, everything
         # else passes and the "observe only" rule is carried by the phase
         # prompt. Empty means: use the built-in list in src/config.js
-        # (write/edit/multi_edit/apply_patch/run_code/memory/office_*).
+        # (write/edit/multi_edit/apply_patch/memory/office_*). `run_code` is
+        # never denied: it is the PTC transport, and nested program calls are
+        # gated under their own names.
         # Add names to tighten the gate (for example `pwsh`, `subagent`,
         # `team_task_create`); there is no allow-list any more.
         planDenyTools: []

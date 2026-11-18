@@ -1,6 +1,6 @@
 {
   "name": "dsh-orchestrator-mode",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Orchestrator mode for DSH: the session-selected model plans behind a workspace-changing tool deny list, a configured executor model implements, and two hand-off tools move control between phases inside one conversation.",
   "license": "MIT",

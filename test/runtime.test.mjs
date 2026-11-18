@@ -184,7 +184,8 @@ test('planning refuses the deny list and lets every other tool through', () => {
   assert.equal(h.guard({ agent: h.agent, name: 'team_task_create' }), undefined)
   assert.match(h.guard({ agent: h.agent, name: 'write' }), /^Plan mode is on, and write changes the workspace\./)
   assert.match(h.guard({ agent: h.agent, name: 'apply_patch' }), /changes the workspace/)
-  assert.match(h.guard({ agent: h.agent, name: 'run_code' }), /changes the workspace/)
+  // The PTC transport stays callable; its nested calls carry the real names.
+  assert.equal(h.guard({ agent: h.agent, name: 'run_code' }), undefined)
   assert.match(h.guard({ agent: h.agent, name: 'memory' }), /changes the workspace/)
 
   h.runtime.disable(h.state)
